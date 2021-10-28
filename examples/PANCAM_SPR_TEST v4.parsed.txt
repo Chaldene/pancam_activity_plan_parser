@@ -1,0 +1,234 @@
+#Waits the transition Night to Day (driven by the RV PCDE, when PSAmax > 20W) and configure RV for day activities
+EXEC A_1, RV_WakeUp;
+
+#Reconfigure Rover activating all necessary rover subsystems:
+#	ADE R1L1
+#	BEMA_STR_DRV 
+#	DMA_PAN_TILT
+#	IMU
+#	SPW ROUTER A
+#	SPW ROUTER B
+#	COPM
+#	LOCCAM
+#	NAVCAM
+#	BEMA_DEP
+EXEC A_2, RV_Configure(1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0);
+
+#Switch On RTB to acquire ALD temperatures
+EXEC A_3, RTB_SwitchOn;
+
+#Warm up and Switch On ADRON
+EXEC A_4, ADRON_SwitchOn(20);
+
+#Switch ADRON in Passive Measure
+EXEC A_5, ADRON_PassiveMeasure(2,10,20,20);
+
+#Warm up and Switch On PanCam electronics
+#pc_par: ---------------------Action: Initialise--------------------- 
+#pc_par: Sol: 35 
+#pc_par: task_ID: 51 
+#pc_par: task_run_num: 1 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_6, PanCam_Initialise(35,51,1);
+
+#Acquire 4 stereo RR images with autoexposure/autofocus at:
+#	PAN -22.5deg, Tilt +30deg
+#	PAN 0 deg, Tilt +30deg
+#	PAN +22.5deg, Tilt +30deg
+#	PAN 0 deg, Tilt +50deg
+#   BJW: WACAE_TOL set to 12 tolerance to help with WACR known NCR
+#pc_par: ------------------------Task: WAC_RR------------------------ 
+#pc_par: WACNumPositions: 4 
+#pc_par: PanPosition1: 29081 
+#pc_par: TiltPosition1: 37683 
+#pc_par: PanPosition2: 32768 
+#pc_par: TiltPosition2: 37683 
+#pc_par: PanPosition3: 36454 
+#pc_par: TiltPosition3: 37683 
+#pc_par: PanPosition4: 32768 
+#pc_par: TiltPosition4: 40959 
+#pc_par: PanPosition5: 0 
+#pc_par: TiltPosition5: 0 
+#pc_par: PanPosition6: 0 
+#pc_par: TiltPosition6: 0 
+#pc_par: PanPosition7: 0 
+#pc_par: TiltPosition7: 0 
+#pc_par: PanPosition8: 0 
+#pc_par: TiltPosition8: 0 
+#pc_par: PanPosition9: 0 
+#pc_par: TiltPosition9: 0 
+#pc_par: PanPosition10: 0 
+#pc_par: TiltPosition10: 0 
+#pc_par: UTMblockID: 10 [SCI_NCRI_LL] 
+#pc_par: TMblockID: 18 [SCI_SF_CRI_LL] 
+#pc_par: WACIntTime: 199 [200 ms] 
+#pc_par: WACAE_OTL: 3265 [4.9820%] 
+#pc_par: WACAE_TARG: 154 [616] 
+#pc_par: WACAE_ROIX: 0 [0] 
+#pc_par: WACAE_ROIY: 0 [0] 
+#pc_par: WACAE_ROIW: 255 [1024] 
+#pc_par: WACAE_ROIH: 255 [1024] 
+#pc_par: WACAE_TOL: 12 
+#pc_par: WACAE_ITER: 15 [16] 
+#pc_par: PanCam_subframeCoordX: 0 
+#pc_par: PanCam_subframeCoordY: 0 
+#pc_par: PanCam_subframeRows: 17 
+#pc_par: PanCam_subframeColumns: 17 
+#pc_par: superPixelSize: 0 
+#pc_par: mode: 0 [NONE] 
+#pc_par: UTMCriticality: 2 [NCSD] 
+#pc_par: TMCriticality: 3 [CRITICAL] 
+#pc_par: UTMDestination: 1 [SET] 
+#pc_par: BackupFlag: 1 [DELETE_RAW_DATA] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_7, PANCAM_WAC_RR(4,29081,37683,32768,37683,36454,37683,32768,40959,0,0,0,0,0,0,0,0,0,0,0,0,10,18,199,3265,154,0,0,255,255,12,15,0,0,17,17,0,0,2,3,1,1);
+
+#Switch Off PanCam
+#pc_par: --------------------Action: PIUSwitchOff-------------------- 
+#pc_par: MechSafe: 1 [ON] 
+#pc_par: IsLast: 1 [FILES_TO_BE_CLOSED] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_8, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_9, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+# BJW: Task ID set to 09 for PANCAM_WAC_Calibration
+# BJW: Task Run number set to 02, as it is the 2nd task of the sol
+#pc_par: ---------------------Action: Initialise--------------------- 
+#pc_par: Sol: 35 
+#pc_par: task_ID: 9 
+#pc_par: task_run_num: 2 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_10, PanCam_Initialise(35,9,2);
+
+#PanCam WAC calibration
+# BJW: WACAE_TARG set to 140 as previously images were too saturated.
+# BJW: Subframe added CoordX=100, CoordY = 150, Rows = 700, Cols = 800
+# BJW: WACAE_TOL set to 12 tolerance to help with WACR known NCR
+#pc_par: -------------------Task: WAC_Calibration-------------------- 
+#pc_par: UTMblockID: 2 [SCI_CRI_LL] 
+#pc_par: TMblockID: 18 [SCI_SF_CRI_LL] 
+#pc_par: WACIntTime: 199 [200 ms] 
+#pc_par: WACAE_OTL: 655 [0.9995%] 
+#pc_par: WACAE_TARG: 140 [560] 
+#pc_par: WACAE_ROIX: 0 [0] 
+#pc_par: WACAE_ROIY: 0 [0] 
+#pc_par: WACAE_ROIW: 255 [1024] 
+#pc_par: WACAE_ROIH: 255 [1024] 
+#pc_par: WACAE_TOL: 12 
+#pc_par: WACAE_ITER: 15 [16] 
+#pc_par: PanCam_subframeCoordX: 100 
+#pc_par: PanCam_subframeCoordY: 150 
+#pc_par: PanCam_subframeRows: 700 
+#pc_par: PanCam_subframeColumns: 800 
+#pc_par: superPixelSize: 0 
+#pc_par: mode: 0 [NONE] 
+#pc_par: UTMCriticality: 3 [CRITICAL] 
+#pc_par: TMCriticality: 3 [CRITICAL] 
+#pc_par: UTMDestination: 0 [NOT_SET] 
+#pc_par: BackupFlag: 0 [KEEP_RAW_DATA] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_11, PANCAM_WAC_Calibration(2,18,199,655,140,0,0,255,255,12,15,100,150,700,800,0,0,3,3,0,0);
+
+#Switch Off PanCam
+#pc_par: --------------------Action: PIUSwitchOff-------------------- 
+#pc_par: MechSafe: 1 [ON] 
+#pc_par: IsLast: 1 [FILES_TO_BE_CLOSED] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_12, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_13, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+# BJW: Task ID set to 10 for PANCAM_HRC_Calibration
+# BJW: Task Run number set to 03
+#pc_par: ---------------------Action: Initialise--------------------- 
+#pc_par: Sol: 35 
+#pc_par: task_ID: 10 
+#pc_par: task_run_num: 3 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_14, PanCam_Initialise(35,10,3);
+
+#PanCam HRC calibration
+#pc_par: -------------------Task: HRC_Calibration-------------------- 
+#pc_par: UTMblockID: 2 [SCI_CRI_LL] 
+#pc_par: TMblockID: 18 [SCI_SF_CRI_LL] 
+#pc_par: PanCam_subframeCoordX: 0 
+#pc_par: PanCam_subframeCoordY: 0 
+#pc_par: PanCam_subframeRows: 17 
+#pc_par: PanCam_subframeColumns: 17 
+#pc_par: UTMCriticality: 3 [CRITICAL] 
+#pc_par: TMCriticality: 3 [CRITICAL] 
+#pc_par: UTMDestination: 0 [NOT_SET] 
+#pc_par: BackupFlag: 0 [KEEP_RAW_DATA] 
+#pc_par: IntTimeMin: 655 [229.25 ms] 
+#pc_par: IntTimeMax: 5999 [2099.65 ms] 
+#pc_par: SaturatedPixels: 154 
+#pc_par: Tolerance: 0 
+#pc_par: FocusWin_X: 384 
+#pc_par: FocusWin_Y: 384 
+#pc_par: FocusWin_Size: 0 [256x256] 
+#pc_par: Encoder_Value: 24 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_15, PANCAM_HRC_Calibration(2,18,0,0,17,17,3,3,0,0,655,5999,154,0,384,384,0,24);
+
+#Switch Off PanCam
+#pc_par: --------------------Action: PIUSwitchOff-------------------- 
+#pc_par: MechSafe: 1 [ON] 
+#pc_par: IsLast: 1 [FILES_TO_BE_CLOSED] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_16, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_17, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+#pc_par: ---------------------Action: Initialise--------------------- 
+#pc_par: Sol: 35 
+#pc_par: task_ID: 8 
+#pc_par: task_run_num: 4 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_18, PanCam_Initialise(35,8,4);
+
+#HRC SupRes @ PAN 0° TILT 60°
+#pc_par: ----------------------Task: HRC_SupRes---------------------- 
+#pc_par: PanPosition: 32768 
+#pc_par: TiltPosition: 42598 
+#pc_par: UTMblockID: 2 [SCI_CRI_LL] 
+#pc_par: TMblockID: 18 [SCI_SF_CRI_LL] 
+#pc_par: PanCam_subframeCoordX: 0 
+#pc_par: PanCam_subframeCoordY: 0 
+#pc_par: PanCam_subframeRows: 17 
+#pc_par: PanCam_subframeColumns: 17 
+#pc_par: UTMCriticality: 3 [CRITICAL] 
+#pc_par: TMCriticality: 3 [CRITICAL] 
+#pc_par: UTMDestination: 0 [NOT_SET] 
+#pc_par: BackupFlag: 0 [KEEP_RAW_DATA] 
+#pc_par: IntTimeMin: 655 [229.25 ms] 
+#pc_par: IntTimeMax: 5999 [2099.65 ms] 
+#pc_par: SaturatedPixels: 154 
+#pc_par: Tolerance: 0 
+#pc_par: FocusWin_X: 384 
+#pc_par: FocusWin_Y: 384 
+#pc_par: FocusWin_Size: 0 [256x256] 
+#pc_par: Encoder_Value: 24 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_19, PANCAM_HRC_SupRes(32768,42598,2,18,0,0,17,17,3,3,0,0,655,5999,154,0,384,384,0,24);
+
+#Switch Off PanCam
+#pc_par: --------------------Action: PIUSwitchOff-------------------- 
+#pc_par: MechSafe: 1 [ON] 
+#pc_par: IsLast: 1 [FILES_TO_BE_CLOSED] 
+#pc_par: ------------------------------------------------------------ 
+EXEC A_20, PanCam_PIUSwitchOff(1,1);
+
+#Switch Off ADRON electronics
+EXEC A_21, ADRON_SwitchOff(1);
+
+#Switch Off RTB
+EXEC A_22, RTB_SwitchOff;
+
+#Reconfigure Rover in idle configuration
+EXEC A_23, RV_Configure(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+END_SOL;

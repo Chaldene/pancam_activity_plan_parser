@@ -1,0 +1,89 @@
+#Waits the transition Night to Day (driven by the RV PCDE, when PSAmax > 20W) and configure RV for day activities
+EXEC A_1, RV_WakeUp;
+
+#Reconfigure Rover activating all necessary rover subsystems:
+#	ADE R1L1
+#	BEMA_STR_DRV 
+#	DMA_PAN_TILT
+#	IMU
+#	SPW ROUTER A
+#	SPW ROUTER B
+#	COPM
+#	LOCCAM
+#	NAVCAM
+#	BEMA_DEP
+EXEC A_2, RV_Configure(1,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0);
+
+#Switch On RTB to acquire ALD temperatures
+EXEC A_3, RTB_SwitchOn;
+
+#Warm up and Switch On ADRON
+EXEC A_4, ADRON_SwitchOn(20);
+
+#Switch ADRON in Passive Measure
+EXEC A_5, ADRON_PassiveMeasure(2,10,20,20);
+
+#Warm up and Switch On PanCam electronics
+EXEC A_6, PanCam_Initialise(35,51,1);
+
+#Acquire 4 stereo RR images with autoexposure/autofocus at:
+#	PAN -22.5deg, Tilt +30deg
+#	PAN 0 deg, Tilt +30deg
+#	PAN +22.5deg, Tilt +30deg
+#	PAN 0 deg, Tilt +50deg
+#   BJW: WACAE_TOL set to 12 tolerance to help with WACR known NCR
+EXEC A_7, PANCAM_WAC_RR(4,29081,37683,32768,37683,36454,37683,32768,40959,0,0,0,0,0,0,0,0,0,0,0,0,10,18,199,3265,154,0,0,255,255,12,15,0,0,17,17,0,0,2,3,1,1);
+
+#Switch Off PanCam
+EXEC A_8, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_9, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+# BJW: Task ID set to 09 for PANCAM_WAC_Calibration
+# BJW: Task Run number set to 02, as it is the 2nd task of the sol
+EXEC A_10, PanCam_Initialise(35,9,2);
+
+#PanCam WAC calibration
+# BJW: WACAE_TARG set to 140 as previously images were too saturated.
+# BJW: Subframe added CoordX=100, CoordY = 150, Rows = 700, Cols = 800
+# BJW: WACAE_TOL set to 12 tolerance to help with WACR known NCR
+EXEC A_11, PANCAM_WAC_Calibration(2,18,199,655,140,0,0,255,255,12,15,100,150,700,800,0,0,3,3,0,0);
+
+#Switch Off PanCam
+EXEC A_12, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_13, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+# BJW: Task ID set to 10 for PANCAM_HRC_Calibration
+# BJW: Task Run number set to 03
+EXEC A_14, PanCam_Initialise(35,10,3);
+
+#PanCam HRC calibration
+EXEC A_15, PANCAM_HRC_Calibration(2,18,0,0,17,17,3,3,0,0,655,5999,154,0,384,384,0,24);
+
+#Switch Off PanCam
+EXEC A_16, PanCam_PIUSwitchOff(1,1);
+
+EXEC A_17, MMS_WaitRelTime(300);
+
+#Warm up and Switch On PanCam electronics
+EXEC A_18, PanCam_Initialise(35,8,4);
+
+#HRC SupRes @ PAN 0° TILT 60°
+EXEC A_19, PANCAM_HRC_SupRes(32768,42598,2,18,0,0,17,17,3,3,0,0,655,5999,154,0,384,384,0,24);
+
+#Switch Off PanCam
+EXEC A_20, PanCam_PIUSwitchOff(1,1);
+
+#Switch Off ADRON electronics
+EXEC A_21, ADRON_SwitchOff(1);
+
+#Switch Off RTB
+EXEC A_22, RTB_SwitchOff;
+
+#Reconfigure Rover in idle configuration
+EXEC A_23, RV_Configure(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+END_SOL;
