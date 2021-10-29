@@ -5,7 +5,7 @@ from os import unlink
 from pathlib import Path
 from itertools import zip_longest
 
-## Constant Parameter List for Tasks and Actions
+# Constant Parameter List for Tasks and Actions
 
 IMAGING_POS_PARAMS = (
     'PanPosition1',
@@ -95,7 +95,9 @@ IMAGING_WAC_STANDARD_PARAMS = ('WACNumPositions', ) \
     + IMAGING_WAC_AE_PARAMS \
     + IMAGING_WAC_PROCESSING_PARAMS
 
-## Functions that scale parameter values
+# Functions that scale parameter values
+
+
 def calc_wac_int_time(val):
     return f"{int(val)+1} ms"
 
@@ -127,7 +129,7 @@ def calc_hrc_int(val):
     return f"{int(val)*0.350:.2f} ms"
 
 
-## All the mapped parameters and the coding
+# All the mapped parameters and the coding
 VALUE_MAPPING = {
     'MechSafe': {'0': 'OFF', '1': 'ON'},
     'IsLast': {'0': 'FILES_KEPT_OPEN', '1': 'FILES_TO_BE_CLOSED'},
@@ -135,7 +137,8 @@ VALUE_MAPPING = {
     'CamSelection': {'0': 'NONE', '1': 'WAC_L', '2': 'WAC_R', '3': 'HRC'},
     'CamID': {'1': 'WAC_L', '2': 'WAC_R', '3': 'HRC'},
     'UTMblockID': {'2': 'SCI_CRI_LL',
-                   '10': 'SCI_NCRI_LL'},
+                   '10': 'SCI_NCRI_LL'
+                   },
     'WACExposureMode': {'1': 'AUTO_EXPOSURE', '2': 'SEMI_AUTO_EXPOSURE', '3': 'MANUAL_EXPOSURE'},
     'WACIntTime': calc_wac_int_time,
     'WACAE_OTL': calc_wac_otl,
@@ -184,7 +187,7 @@ def read_file(file_path, output_file):
 def process_line(line, output_file):
     """
     Function reads line, skips if a comment or blank. Then searches for PanCam task/action names.
-    
+
     Valid task action names are given in the function map keys. If task/action name is matched the parameter value is
     then mapped using the VALUE_MAPPING and any functions. 
     """
@@ -201,7 +204,7 @@ def process_line(line, output_file):
         "PanCam_HRCfocus": a_hrc_focus,
         "PanCam_HRCexp": a_hrc_exp,
         "PanCam_MakeSafe": a_makesafe,
-        "PANCAM_WAC_RR": t_wac_rr,
+        "PANCAM_WAC_RR(": t_wac_rr,
         "PANCAM_WAC_RRGB": t_wac_rrgb,
         "PANCAM_WAC_Geol": t_wac_geol,
         "PANCAM_WAC_Solar": t_wac_solar,
@@ -254,7 +257,9 @@ def get_params(line, param_names):
     # If not exact expected values the *MISSING* keyword will apepar in output.
     return dict(zip_longest(param_names, param_values, fillvalue='*MISSING*'))
 
-## List of all actions and the parameter mappings
+# List of all actions and the parameter mappings
+
+
 def a_initialise(output_file):
     output_file.write(_c("Action: Initialise".center(60, '-')))
 
@@ -381,6 +386,8 @@ def a_makesafe(output_file):
     return param_names
 
 # List of all tasks and the parameter mappings
+
+
 def t_wac_rr(output_file):
     output_file.write(_c("Task: WAC_RR".center(60, '-')))
 
