@@ -4,6 +4,7 @@
 from os import unlink
 from pathlib import Path
 from itertools import zip_longest
+import bitstruct
 
 # Constant Parameter List for Tasks and Actions
 
@@ -146,8 +147,44 @@ def calc_tiltAbsAngle(val):
     else:
         return f"{float(val) * (400/65535) - 200:.2f} deg"
 
-# All the mapped parameters and the coding
+
+def decode_tc_datafield(val):
+
+    tc_datafield_struct = {
+        "Function ID": 'u16',
+        "Activity ID": 'u8'
+    }
+
+    tc_datafield = bitstruct.unpack_dict(
+        ''.join(tc_datafield_struct.values()), list(tc_datafield_struct.keys()), bytearray.fromhex(val[:6]))
+
+    if tc_datafield["Function ID"] != 10006:
+        return "Not a PanCam Direct Command"
+
+    elif tc_datafield["Activity ID"] == 10:
+        siid_struct = {
+            "Block Type": 'u1',
+            "Instrument ID": 'u4',
+            "TC Block ID": 'u8',
+            "TC Counter": 'u11',
+            "Block Length": 'u16',
+            "SOL": 'u12',
+            "TASK ID": 'u7',
+            "TASK Run No": 'u7',
+            "Padding": 'u22'
+        }
+
+        siid = bitstruct.unpack_dict(''.join(siid_struct.values()), list(
+            siid_struct.keys()), bytearray.fromhex(val[6:]))
+
+        return "Set Image ID TC: " + str(siid)
+
+    else:
+        return "PanCam Direct Command Structure Unknown" + str(tc_datafield)
+
+    # All the mapped parameters and the coding
 VALUE_MAPPING = {
+    # PanCam Parameters
     'MechSafe': {'0': 'OFF', '1': 'ON'},
     'IsLast': {'0': 'FILES_KEPT_OPEN', '1': 'FILES_TO_BE_CLOSED'},
     'InitCam': {'1': 'WAC_L', '2': 'WAC_R', '3': 'HRC'},
@@ -205,6 +242,10 @@ VALUE_MAPPING = {
     'TiltPosition9': calc_tiltAbsAngle,
     'PanPosition10': calc_panAbsAngle,
     'TiltPosition10': calc_tiltAbsAngle,
+
+    # PUS_EXEC
+    'TC_Datafield': decode_tc_datafield,
+
     # GNC_TakeImages
     'target_camera': {'0': 'LOCCAM', '1': 'NAVCAM'},
     'R_exposure_time': calc_gnc_image_time,
@@ -244,7 +285,7 @@ def process_line(line, output_file):
     Function reads line, skips if a comment or blank. Then searches for PanCam task/action names.
 
     Valid task action names are given in the function map keys. If task/action name is matched the parameter value is
-    then mapped using the VALUE_MAPPING and any functions. 
+    then mapped using the VALUE_MAPPING and any functions.
     """
 
     # Dict of each action/task name and function name used to lookup parameter names
@@ -270,7 +311,8 @@ def process_line(line, output_file):
         "PANCAM_HRC_ISEM_RGBfar": t_hrc_isem_rgb_far,
         "PANCAM_HRC_SupRes": t_hrc_sup_res,
         "PANCAM_WAC_Calibration": t_wac_calibration,
-        "PANCAM_HRC_Calibration": t_hrc_calibration
+        "PANCAM_HRC_Calibration": t_hrc_calibration,
+        "PUS_Exec": a_pus_exec
     }
 
     if any(a in ['#', '\n'] for a in line[0]):
@@ -512,6 +554,23 @@ def a_rv_configure(output_file):
 
     return param_names
 
+
+def a_pus_exec(output_file):
+    output_file.write(
+        _c("Action: PUS_Exec (Manual Telecommand)".center(60, '-')))
+    # First check if a PanCam item
+    param_names = (
+        'Timeout',
+        'TC_Dest_ID',
+        'TC_Type',
+        'TC_SubType',
+        'TC_ACK',
+        'TC_EXEC',
+        'TC_Length',
+        'TC_Datafield'
+    )
+
+    return param_names
 
 
 def t_wac_rr(output_file):
