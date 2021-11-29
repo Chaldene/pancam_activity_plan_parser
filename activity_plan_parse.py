@@ -129,6 +129,23 @@ def calc_hrc_int(val):
     return f"{int(val)*0.350:.2f} ms"
 
 
+def calc_gnc_image_time(val):
+    return f"{int(val)*0.0008} ms"
+
+
+def calc_panAbsAngle(val):
+    if val == "0":
+        return f"Not Used"
+    else:
+        return f"{float(val) * (400/65535) - 200:.2f} deg"
+
+
+def calc_tiltAbsAngle(val):
+    if val == "0":
+        return f"Not Used"
+    else:
+        return f"{float(val) * (400/65535) - 200:.2f} deg"
+
 # All the mapped parameters and the coding
 VALUE_MAPPING = {
     'MechSafe': {'0': 'OFF', '1': 'ON'},
@@ -151,7 +168,12 @@ VALUE_MAPPING = {
     'UTMCriticality': {'2': 'NCSD', '3': 'CRITICAL'},
     'TMCriticality': {'2': 'NCSD', '3': 'CRITICAL'},
     'UTMDestination': {'0': 'NOT_SET', '1': 'SET'},
-    'TMblockID': {'18': 'SCI_SF_CRI_LL'},
+    'TMblockID': {'18': 'SCI_SF_CRI_LL',
+                  '23': 'SCI_SF_CRI_8',
+                  '24': 'SCI_SF_CRI_6',
+                  '25': 'SCI_SF_CRI_4',
+                  '26': 'SCI_SF_NCRI_LL'
+                  },
     'mode': {'0': 'NONE', '1': 'DOWNSAMPLING', '2': 'BINNING', '3': 'ALL'},
     'BackupFlag': {'0': 'KEEP_RAW_DATA', '1': 'DELETE_RAW_DATA'},
     'WAC_ID': {'1': 'WAC_L', '2': 'WAC_R'},
@@ -160,7 +182,40 @@ VALUE_MAPPING = {
     'HRCExposureMode': {'1': 'AUTO_EXPOSURE', '2': 'MANUAL_EXPOSURE'},
     'IntTimeMin': calc_hrc_int,
     'IntTimeMax': calc_hrc_int,
-    'HRCIntTime': calc_hrc_int
+    'HRCIntTime': calc_hrc_int,
+
+    # PanPositions
+    'PanPosition1': calc_panAbsAngle,
+    'TiltPosition1': calc_tiltAbsAngle,
+    'PanPosition2': calc_panAbsAngle,
+    'TiltPosition2': calc_tiltAbsAngle,
+    'PanPosition3': calc_panAbsAngle,
+    'TiltPosition3': calc_tiltAbsAngle,
+    'PanPosition4': calc_panAbsAngle,
+    'TiltPosition4': calc_tiltAbsAngle,
+    'PanPosition5': calc_panAbsAngle,
+    'TiltPosition5': calc_tiltAbsAngle,
+    'PanPosition6': calc_panAbsAngle,
+    'TiltPosition6': calc_tiltAbsAngle,
+    'PanPosition7': calc_panAbsAngle,
+    'TiltPosition7': calc_tiltAbsAngle,
+    'PanPosition8': calc_panAbsAngle,
+    'TiltPosition8': calc_tiltAbsAngle,
+    'PanPosition9': calc_panAbsAngle,
+    'TiltPosition9': calc_tiltAbsAngle,
+    'PanPosition10': calc_panAbsAngle,
+    'TiltPosition10': calc_tiltAbsAngle,
+    # GNC_TakeImages
+    'target_camera': {'0': 'LOCCAM', '1': 'NAVCAM'},
+    'R_exposure_time': calc_gnc_image_time,
+    'L_exposure_time': calc_gnc_image_time,
+    'R_binning_mode': {'0': 'DISABLED', '1': 'ENABLED'},
+    'L_binning_mode': {'0': 'DISABLED', '1': 'ENABLED'},
+    'target_sensor': {'1': 'Right Sensor', '2': 'Left Sensor', '3': 'Both Sensors'},
+
+    # MAST_PTU_MoveTo
+    'panAbsAngle': calc_panAbsAngle,
+    'tiltAbsAngle': calc_tiltAbsAngle
 }
 
 
@@ -194,6 +249,9 @@ def process_line(line, output_file):
 
     # Dict of each action/task name and function name used to lookup parameter names
     function_map = {
+        "GNC_TakeImages": a_gnc_takeimages,
+        "RV_Configure": a_rv_configure,
+        "MAST_PTU_MoveTo": a_mast_ptu_moveto,
         "PanCam_Initialise": a_initialise,
         "PanCam_PIUSwitchOff": a_piu_switch_off,
         "PanCam_InitCam": a_init_cam,
@@ -219,8 +277,12 @@ def process_line(line, output_file):
         # Comment or blank line in file so ignore and continue
         return
 
+    # Check to see if any of the function_map keys are in the line
     for task_action in function_map:
         if task_action in line:
+            # First output two blank lines for easier ready
+            output_file.write("\n\n")
+
             # Use corresponding function to get parameter names
             param_names = function_map[task_action](output_file)
 
@@ -385,7 +447,71 @@ def a_makesafe(output_file):
 
     return param_names
 
-# List of all tasks and the parameter mappings
+
+def a_gnc_takeimages(output_file):
+    output_file.write(
+        _c("Action: Rover Vehicle Take NavCam/LocCam Image".center(60, '-')))
+
+    param_names = (
+        'target_camera',
+        'R_exposure_time',
+        'L_exposure_time',
+        'R_db_gain',
+        'L_db_gain',
+        'R_analog_gain',
+        'L_analog_gain',
+        'R_binning_mode',
+        'L_binning_mode',
+        'target_sensor',
+        'R_imgFileName',
+        'L_imgFileName',
+        'R_MemPartition',
+        'L_MemPar'
+    )
+
+    return param_names
+
+
+def a_mast_ptu_moveto(output_file):
+    output_file.write(_c("Action: Rover Move Mast Head".center(60, '-')))
+
+    param_names = (
+        'panAbsAngle',
+        'tiltAbsAngle'
+    )
+
+    return param_names
+
+
+def a_rv_configure(output_file):
+    output_file.write(_c("Action: Rover Vehicle Configure".center(60, '-')))
+
+    param_names = (
+        'ADE_R1L1_Config Activate',
+        'ADE_R2L2_Config Activate',
+        'ADE_R1L2_Config Activate',
+        'ADE_R2L1_Config Activate',
+        'BEMA_STR_DRV_Config Activate',
+        'DMA_PAN_TILT_Config Activate',
+        'IMU_Config Activate',
+        'SPW_Router_A_Config Activate',
+        'SPW_Router_B_Config Activate',
+        'COPM_Config Activate',
+        'LOCCAM_Config Activate',
+        'NAVCAM_Config Activate',
+        'BEMA_DEP_Config Activate',
+        'DMA_DEP_Config Activate',
+        'SA_L_Primary_Config Activate',
+        'SA_L_Secondary_Config Activate',
+        'SA_R_Primary_Config Activate',
+        'SA_R_Secondary_Config Activate',
+        'HDRM_R_Board_Config Activate',
+        'HDRM_L_Board_Config Activate'
+
+    )
+
+    return param_names
+
 
 
 def t_wac_rr(output_file):
